@@ -50,7 +50,9 @@ int dt = 0;
 
 bool running = false;
 
-const byte M_LOGO[8] = 
+int count = 0;
+
+const byte M_LOGO[8] =
 {
   B00000000,
   B01000010,
@@ -82,6 +84,28 @@ void light_row(int row, CRGB colour) {
 
 }
 
+void show_logo() {
+  count = random(23) * 8;
+  for (int j = 0; j < 8; j++) {
+    byte line = M_LOGO[j];
+
+    //Serial.println(line);
+
+    for (byte mask = 00000001; mask > 0; mask <<= 1) { //iterate through bit mask
+
+      if (line & mask) {
+        leds[count] = CRGB::Red;
+        //Serial.print("*");
+      } else {
+        //Serial.print(" ");
+        leds[count] = CRGB::Black;
+      }
+      count++;
+    }
+    ///Serial.println();
+  }
+  FastLED.show();
+}
 
 
 
@@ -103,6 +127,8 @@ void setup() {
   }
   FastLED.show();
 
+  show_logo();
+  
   //unsigned long start_time = millis();
   while (leds[0].b > 2) {
     fadeAll();
@@ -167,14 +193,14 @@ void readADC() {
       }
 
     } else {
-      energy -= 3;
+      energy -= 10;
       run_time -= dt;
     }
 
     //energy -= 100;
   }
 
-  if(energy > max_energy){
+  if (energy > max_energy) {
     energy = max_energy + 1;
   }
 
@@ -185,9 +211,6 @@ void readADC() {
 
 }
 
-void show_logo(){
-  
-}
 
 
 void colours() {
@@ -237,7 +260,7 @@ void draw_lines() {
 }
 
 void twinkle() {
-  fadeAll();
+  //fadeAll();
   if (millis() - last_twinkle > 1000) {
     hue += 30;
     leds[random(NUM_LEDS)] = CHSV(hue, 255, 255);
@@ -269,7 +292,7 @@ void matrix() {
     int pixel = ((LEDS_PER_ROW) * (matrix_row) ) + matrix_col;
 
     if (matrix_row % 2) {
-      pixel  = ((LEDS_PER_ROW) * (matrix_row) ) + (LEDS_PER_ROW -1 - matrix_col);
+      pixel  = ((LEDS_PER_ROW) * (matrix_row) ) + (LEDS_PER_ROW - 1 - matrix_col);
       //pixel += 1;
     }
     //    Serial.print(matrix_row);
@@ -286,16 +309,22 @@ void matrix() {
   }
 
 
-
-
 }
 
+
+unsigned long fade_time = millis();
 
 void loop() {
   readADC();
 
   if (!running) {
-    twinkle();
+    fadeAll();
+    if(millis() - fade_time > 5000) {
+      show_logo();
+      fade_time = millis();
+    }
+
+    //twinkle();
     //matrix();
   } else {
     draw_lines();

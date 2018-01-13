@@ -463,7 +463,7 @@ void loop() {
     FastLED.show();
     while (leds[0].g > 0) {
       fadeAll();
-      delay(30);
+      delay(5);
     }
     level++;
     if (level > 9) {
@@ -471,7 +471,7 @@ void loop() {
       break;
     }
     show_digit(level);
-    delay(3000);
+    delay(500);
     FastLED.clear();
     energy = 0;
     state = START_GAME;

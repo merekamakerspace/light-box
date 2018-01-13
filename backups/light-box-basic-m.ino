@@ -1,5 +1,5 @@
 #include "FastLED.h"
-#include "digits.h"
+
 // How many leds in your strip?
 #define NUM_LEDS_1 150
 #define NUM_LEDS_2 98
@@ -20,19 +20,12 @@
 #define KNOB_PIN A1
 
 
-#define MAX_ENERGY 500
-
-#define START_RABBIT_POS 22
-#define START_SNAKE_LENGTH 12
-
+#define MAX_ENERGY 999
 
 CRGB leds[NUM_LEDS];
 
 int last_val = -1;
 
-enum {  WAITING, COUNT_DOWN, START_GAME, PLAYING, WIN, LOSE, END_GAME };
-
-int state = WAITING;
 
 const int numReadings = 10;
 float readings[numReadings];      // the readings from the analog input
@@ -59,12 +52,17 @@ bool running = false;
 
 int count = 0;
 
-//Game variables
-int snake_length = 3;
-int rabbit_pos = 22;
-unsigned long game_time;
-int level = 1;
-int LEVEL_TIME[] = {25000, 22000, 21000, 20000, 18000, 15000, 14000, 13000, 12000, 10000};
+const byte M_LOGO[8] =
+{
+  B00000000,
+  B01000010,
+  B11100111,
+  B11111111,
+  B11011011,
+  B11000011,
+  B11000011,
+  B11000011
+};
 
 void fadeAll()  {
   for (int i = 0; i < NUM_LEDS; i++) {
@@ -130,7 +128,7 @@ void setup() {
   FastLED.show();
 
   show_logo();
-
+  
   //unsigned long start_time = millis();
   while (leds[0].b > 2) {
     fadeAll();
@@ -165,7 +163,7 @@ void readADC() {
   average = total / numReadings; //Smoothing algorithm (http://www.arduino.cc/en/Tutorial/Smoothing)
 
   if (average != currentValue) {
-    //Serial.println(average);
+    Serial.println(average);
   }
 
   currentValue = average;
@@ -175,7 +173,7 @@ void readADC() {
   if (average > 2) {
     if (!running) {
       running = true;
-      //Serial.println("0 running");
+      Serial.println("0 running");
     }
     energy += ((average * dt) / 1000);
     run_time += dt;
@@ -189,13 +187,13 @@ void readADC() {
     if (energy <= 0) {
       if (running) {
         running = false;
-        //Serial.println("0 stopped");
+        Serial.println("0 stopped");
         energy = 0;
         last_twinkle = millis() + 5000;
       }
 
     } else {
-      //energy -= 10;
+      energy -= 10;
       run_time -= dt;
     }
 
@@ -206,8 +204,8 @@ void readADC() {
     energy = max_energy + 1;
   }
 
-  //if (running)
-  //  Serial.println(energy);
+  if (running)
+    Serial.println(energy);
 
 
 
@@ -297,6 +295,13 @@ void matrix() {
       pixel  = ((LEDS_PER_ROW) * (matrix_row) ) + (LEDS_PER_ROW - 1 - matrix_col);
       //pixel += 1;
     }
+    //    Serial.print(matrix_row);
+    //    Serial.print("\t");
+    //    Serial.print(matrix_col);
+    //    Serial.print("\t");
+    //    Serial.println(pixel);
+    //
+    //leds[NUM_LEDS - pixel - 1] = CRGB::Green;
     leds[NUM_LEDS - pixel - 1] = CHSV(hue, 255, 255);
 
     FastLED.show();
@@ -306,206 +311,26 @@ void matrix() {
 
 }
 
-void show_digit(int digit) {
-  //FastLED.clear();
-  int start_row = 8;
-  for (int row = 0; row < 8; row++) {
-    byte line = DIGITS[digit][row];
-
-    //Serial.println(line);
-    int col = 0;
-    for (byte mask = 00000001; mask > 0; mask <<= 1) { //iterate through bit mask
-      //int pixel = ((start_row + row) * 8) +  col;
-      int pixel  = ((start_row + row) * 8) + (7 - col);
-
-      if ((start_row + row) % 2) {
-        //pixel  = ((start_row + row) * 8) + (7 - col);
-        pixel = ((start_row + row) * 8) +  col;//pixel += 1;
-      }
-
-      if (line & mask) {
-        leds[pixel] = CRGB::Red;
-        //Serial.print("*");
-      } else {
-        //Serial.print(" ");
-        leds[pixel] = CRGB::Black;
-      }
-      //Serial.println(pixel);
-
-      col++;
-    }
-    //Serial.println();
-  }
-  FastLED.show();
-}
-
-
-
-//Show 3 to 1 count_down
-void count_down() {
-  FastLED.clear();
-  // FastLED.show();
-  show_digit(3);
-  delay(1000);
-  show_digit(2);
-  delay(1000);
-  show_digit(1);
-  delay(1000);
-  FastLED.clear();
-  FastLED.show();
-
-
-}
-
-void draw_game() {
-
-  FastLED.clear();
-
-  //Draw Snake
-  for (int i = 0; i < snake_length; i++) {
-    leds[NUM_LEDS - 1 - i] = CRGB::Green;
-  }
-
-  //Draw Player
-  leds[NUM_LEDS - 1 - rabbit_pos] = CRGB::Blue;
-
-  FastLED.show();
-  last_draw = millis();
-}
-
 
 unsigned long fade_time = millis();
-unsigned long last_run = millis();
-int prev_snake = -1;
-int prev_rabbit = -1;
 
 void loop() {
+  readADC();
 
-  switch (state) {
-  case WAITING:
-    readADC();
-
-    if (!running) {
-      fadeAll();
-      if (millis() - fade_time > 5000) {
-        show_logo();
-        fade_time = millis();
-      }
-
-      //twinkle();
-      //matrix();
-    } else {
-      if (millis() - last_run > 10000) {
-        state = COUNT_DOWN;
-      }
+  if (!running) {
+    fadeAll();
+    if(millis() - fade_time > 5000) {
+      show_logo();
+      fade_time = millis();
     }
 
-    delay(30);
-
-    break;
-  case COUNT_DOWN:
-    Serial.println("0 Count Down");
-
-    count_down();
-    state = START_GAME;
-
-    break;
-  case START_GAME:
-    energy = 0;
-    rabbit_pos = START_RABBIT_POS;
-    snake_length = START_SNAKE_LENGTH;
-    state = PLAYING;
-    game_time = millis();
-    last_read = millis();
-    break;
-
-  case PLAYING:
-    readADC();
-
-    snake_length = map(energy, 0, MAX_ENERGY, START_SNAKE_LENGTH, NUM_LEDS - 1);
-    rabbit_pos = map(millis() - game_time, 0, LEVEL_TIME[level], START_RABBIT_POS, NUM_LEDS - 1);
-    if (snake_length != prev_snake) {
-      Serial.print("Snake ");
-      Serial.print(snake_length);
-      Serial.print(" Energy: ");
-      Serial.println(energy);
-
-    }
-
-    if (snake_length >= rabbit_pos) {
-      state = WIN;
-      Serial.print("Level: ");
-      Serial.print(level);
-      Serial.print(" Snake: ");
-      Serial.print(snake_length);
-      Serial.print(" Rabbit: ");
-      Serial.print(rabbit_pos);
-      Serial.print(" Energy: ");
-      Serial.println(energy);
-
-
-    }
-    else if (rabbit_pos >= NUM_LEDS - 1) {
-      state = LOSE;
-    } else {
-      draw_game();
-    }
-
-    delay(30);
-    break;
-
-  case WIN:
-    //Serial.print("0 Win ");
-    //Serial.println(level);
-    for (int i = 0; i < NUM_LEDS; i++) {
-      leds[i] = CRGB::Green;
-    }
-    FastLED.show();
-    while (leds[0].g > 0) {
-      fadeAll();
-      delay(30);
-    }
-    level++;
-    if (level > 9) {
-      state = END_GAME;
-      break;
-    }
-    show_digit(level);
-    delay(3000);
-    FastLED.clear();
-    energy = 0;
-    state = START_GAME;
-    //rabbit_pos = START_PLAYER_POS;
-    //snake_length = START_SNAKE_LENGTH;
-    break;
-
-  case LOSE:
-    Serial.println("0 Lose");
-
-    for (int i = 0; i < NUM_LEDS; i++) {
-      leds[i] = CRGB::Red;
-    }
-
-    FastLED.show();
-    while (leds[0].r > 0) {
-      fadeAll();
-      delay(30);
-    }
-    state = END_GAME;
-    break;
-
-  case END_GAME:
-    energy = 0;
-    level = 0;
-    FastLED.clear();
-    FastLED.show();
-    last_run = millis();
-    running = false;
-    //delay(3000);
-    state = WAITING;
-    break;
+    //twinkle();
+    //matrix();
+  } else {
+    draw_lines();
   }
 
+  delay(30);
 
 }
 

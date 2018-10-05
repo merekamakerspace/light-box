@@ -64,7 +64,7 @@ int snake_length = 3;
 int rabbit_pos = 22;
 unsigned long game_time;
 int level = 1;
-int LEVEL_TIME[] = {25000, 22000, 21000, 20000, 18000, 15000, 14000, 13000, 12000, 10000};
+int LEVEL_TIME[] = {55000, 50000, 48000, 45000, 40000, 15000, 14000, 13000, 12000, 10000};
 
 void fadeAll()  {
   for (int i = 0; i < NUM_LEDS; i++) {
@@ -154,7 +154,7 @@ void readADC() {
   last_read = millis();
 
   total = total - readings[index];
-  readings[index] = map(analogRead(A0), 0, 1024, 0, 60); //Raw data reading
+  readings[index] = map(analogRead(A3), 0, 1024, 0, 60); //Raw data reading
 
   total = total + readings[index];
   index = index + 1;
